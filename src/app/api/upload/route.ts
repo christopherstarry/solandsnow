@@ -11,10 +11,19 @@ const ALLOWED_TYPES = [
   "image/gif",
   "image/webp",
   "image/avif",
+  "",
 ];
 
 export async function POST(request: NextRequest) {
   try {
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!token) {
+      return NextResponse.json(
+        { error: "BLOB_READ_WRITE_TOKEN is not set" },
+        { status: 500 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -32,23 +41,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (file.type && !ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, AVIF" },
+        { error: `Invalid file type: ${file.type}` },
         { status: 400 }
       );
     }
 
     const blob = await put(file.name, file, {
       access: "public",
+      token,
     });
 
     return NextResponse.json({ url: blob.url });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Upload failed";
     console.error("POST /api/upload error:", error);
-    return NextResponse.json(
-      { error: "Upload failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
