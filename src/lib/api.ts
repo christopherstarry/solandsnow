@@ -1,12 +1,19 @@
 import { OrderInput } from "./types";
 
-export async function fetchProducts() {
-  const res = await fetch("/api/products");
+export async function fetchProducts(search?: string) {
+  const url = search
+    ? `/api/products?search=${encodeURIComponent(search)}`
+    : "/api/products";
+  const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch products");
   return res.json();
 }
 
-export async function createProduct(data: { name: string; price: number }) {
+export async function createProduct(data: {
+  name: string;
+  price: number;
+  imageUrl?: string | null;
+}) {
   const res = await fetch("/api/products", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -18,7 +25,7 @@ export async function createProduct(data: { name: string; price: number }) {
 
 export async function updateProduct(
   id: string,
-  data: { name?: string; price?: number }
+  data: { name?: string; price?: number; imageUrl?: string | null }
 ) {
   const res = await fetch(`/api/products/${id}`, {
     method: "PATCH",

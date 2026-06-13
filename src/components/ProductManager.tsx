@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Product } from "@/lib/types";
 import { formatRupiah } from "@/lib/utils";
 import { createProduct, updateProduct, deleteProduct } from "@/lib/api";
+import ProductImage from "./ProductImage";
 
 interface ProductManagerProps {
   products: Product[];
@@ -13,6 +14,7 @@ interface ProductManagerProps {
 export default function ProductManager({ products, onChange }: ProductManagerProps) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,27 +24,35 @@ export default function ProductManager({ products, onChange }: ProductManagerPro
 
     setLoading(true);
     try {
+      const payload = {
+        name,
+        price: Number(price),
+        imageUrl: imageUrl.trim() || null,
+      };
       if (editingId) {
-        await updateProduct(editingId, {
-          name,
-          price: Number(price),
-        });
+        await updateProduct(editingId, payload);
       } else {
-        await createProduct({ name, price: Number(price) });
+        await createProduct(payload);
       }
-      setName("");
-      setPrice("");
-      setEditingId(null);
+      resetForm();
       onChange();
     } finally {
       setLoading(false);
     }
   }
 
+  function resetForm() {
+    setName("");
+    setPrice("");
+    setImageUrl("");
+    setEditingId(null);
+  }
+
   function startEdit(product: Product) {
     setEditingId(product.id);
     setName(product.name);
     setPrice(String(product.price));
+    setImageUrl(product.imageUrl ?? "");
   }
 
   async function handleDelete(id: string) {
@@ -91,6 +101,18 @@ export default function ProductManager({ products, onChange }: ProductManagerPro
               placeholder="30000"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal/80">
+              Image URL <span className="text-charcoal/50">(optional)</span>
+            </label>
+            <input
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-wood/20 bg-cream px-3 py-2 text-sm outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
           <div className="flex gap-2 pt-1">
             <button
               type="submit"
@@ -102,11 +124,7 @@ export default function ProductManager({ products, onChange }: ProductManagerPro
             {editingId && (
               <button
                 type="button"
-                onClick={() => {
-                  setEditingId(null);
-                  setName("");
-                  setPrice("");
-                }}
+                onClick={resetForm}
                 className="rounded-xl bg-cream-dark px-4 py-2 text-sm font-semibold text-ink ring-1 ring-wood/20"
               >
                 Cancel
@@ -122,9 +140,12 @@ export default function ProductManager({ products, onChange }: ProductManagerPro
             key={p.id}
             className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-wood/10"
           >
-            <div>
-              <p className="font-semibold text-ink">{p.name}</p>
-              <p className="text-sm text-wood-dark">{formatRupiah(p.price)}</p>
+            <div className="flex items-center gap-3">
+              <ProductImage src={p.imageUrl} alt={p.name} size={56} />
+              <div>
+                <p className="font-semibold text-ink">{p.name}</p>
+                <p className="text-sm text-wood-dark">{formatRupiah(p.price)}</p>
+              </div>
             </div>
             <div className="flex gap-2">
               <button

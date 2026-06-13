@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Order, OrdersResponse } from "@/lib/types";
 import { deleteOrder, fetchOrders } from "@/lib/api";
+import ProductImage from "./ProductImage";
 import { formatJakartaDateTime, formatRupiah, toJakartaDateString } from "@/lib/utils";
 
 interface OrderHistoryProps {
@@ -119,10 +120,17 @@ function OrderCard({
                 key={item.id}
                 className="flex items-center justify-between text-sm"
               >
-                <span className="text-ink">
-                  {item.product.name}{" "}
-                  <span className="text-charcoal/60">x{item.quantity}</span>
-                </span>
+                <div className="flex items-center gap-2">
+                  <ProductImage
+                    src={item.product.imageUrl}
+                    alt={item.product.name}
+                    size={32}
+                  />
+                  <span className="text-ink">
+                    {item.product.name}{" "}
+                    <span className="text-charcoal/60">x{item.quantity}</span>
+                  </span>
+                </div>
                 <span className="font-medium text-wood-dark">
                   {formatRupiah(item.price * item.quantity)}
                 </span>

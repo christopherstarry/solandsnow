@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Product } from "@/lib/types";
 import { formatRupiah, toJakartaDateString } from "@/lib/utils";
 import { createOrder } from "@/lib/api";
+import ProductImage from "./ProductImage";
 
 interface OrderFormProps {
   products: Product[];
@@ -14,8 +15,15 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
   const [customerName, setCustomerName] = useState("");
   const [date, setDate] = useState(toJakartaDateString());
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const filteredProducts = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return products;
+    return products.filter((p) => p.name.toLowerCase().includes(term));
+  }, [products, search]);
 
   const total = useMemo(() => {
     return Object.entries(quantities).reduce((sum, [productId, qty]) => {
@@ -48,6 +56,7 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
       setCustomerName("");
       setQuantities({});
       setDate(toJakartaDateString());
+      setSearch("");
       setSuccess(true);
       onCreated();
       setTimeout(() => setSuccess(false), 2000);
@@ -89,23 +98,44 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
       </div>
 
       <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-wood/10">
-        <h3 className="mb-3 font-semibold text-ink">Products</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold text-ink">Products</h3>
+          <span className="text-xs text-charcoal/60">
+            {Object.keys(quantities).length} selected
+          </span>
+        </div>
+
+        <div className="mb-3">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search product..."
+            className="w-full rounded-xl border border-wood/20 bg-cream px-3 py-2 text-sm outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+          />
+        </div>
+
         {products.length === 0 ? (
           <p className="text-sm text-charcoal/70">Add products first.</p>
+        ) : filteredProducts.length === 0 ? (
+          <p className="text-sm text-charcoal/70">No products match.</p>
         ) : (
           <div className="space-y-3">
-            {products.map((p) => {
+            {filteredProducts.map((p) => {
               const qty = quantities[p.id] ?? 0;
               return (
                 <div
                   key={p.id}
                   className="flex items-center justify-between rounded-xl bg-cream p-3"
                 >
-                  <div>
-                    <p className="font-medium text-ink">{p.name}</p>
-                    <p className="text-xs text-wood-dark">
-                      {formatRupiah(p.price)}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <ProductImage src={p.imageUrl} alt={p.name} size={44} />
+                    <div>
+                      <p className="font-medium text-ink">{p.name}</p>
+                      <p className="text-xs text-wood-dark">
+                        {formatRupiah(p.price)}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button

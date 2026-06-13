@@ -4,6 +4,7 @@ import { Product, OrdersResponse } from "@/lib/types";
 import { formatRupiah, toJakartaDateString } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { fetchOrders } from "@/lib/api";
+import ProductImage from "./ProductImage";
 
 interface DashboardProps {
   products: Product[];
@@ -56,7 +57,10 @@ export default function Dashboard({ products }: DashboardProps) {
               key={p.id}
               className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-sm"
             >
-              <span className="font-medium text-ink">{p.name}</span>
+              <div className="flex items-center gap-2">
+                <ProductImage src={p.imageUrl} alt={p.name} size={32} />
+                <span className="font-medium text-ink">{p.name}</span>
+              </div>
               <span className="text-wood-dark">{formatRupiah(p.price)}</span>
             </li>
           ))}
