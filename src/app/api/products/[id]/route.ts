@@ -33,7 +33,7 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const { name, price } = body;
+    const { name, price, imageUrl } = body;
 
     const data: Record<string, unknown> = {};
     if (name != null) data.name = String(name);
@@ -46,6 +46,7 @@ export async function PATCH(
       }
       data.price = Number(price);
     }
+    if (imageUrl !== undefined) data.imageUrl = imageUrl ? String(imageUrl) : null;
 
     const product = await prisma.product.update({
       where: { id: params.id },
