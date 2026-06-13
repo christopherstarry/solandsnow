@@ -1,5 +1,23 @@
 import { OrderInput } from "./types";
 
+export async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error ?? "Upload failed");
+  }
+
+  const { url } = await res.json();
+  return url;
+}
+
 export async function fetchProducts(search?: string) {
   const url = search
     ? `/api/products?search=${encodeURIComponent(search)}`
