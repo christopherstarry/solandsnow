@@ -144,6 +144,23 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
         </div>
 
         <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-wood/10">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 rounded-xl bg-sunshine p-3 text-center">
+              <p className="text-xs font-semibold text-wood-dark">Total</p>
+              <p className="text-xl font-bold text-ink">{formatRupiah(total)}</p>
+            </div>
+            <button
+              type="button"
+              onClick={openModal}
+              disabled={loading || !customerName || total === 0}
+              className="flex-1 rounded-xl bg-sage py-3 text-sm font-bold text-white shadow-sm active:bg-sage-dark disabled:opacity-60"
+            >
+              {loading ? "Saving..." : "Save Order"}
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-wood/10">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-semibold text-ink">Products</h3>
             <span className="text-xs text-charcoal/60">
@@ -208,20 +225,6 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
             </div>
           )}
         </div>
-
-        <div className="rounded-2xl bg-sunshine p-5 text-center shadow-sm">
-          <p className="text-sm font-semibold text-wood-dark">Total</p>
-          <p className="text-3xl font-bold text-ink">{formatRupiah(total)}</p>
-        </div>
-
-        <button
-          type="button"
-          onClick={openModal}
-          disabled={loading || !customerName || total === 0}
-          className="w-full rounded-2xl bg-sage py-3 text-base font-bold text-white shadow-sm active:bg-sage-dark disabled:opacity-60"
-        >
-          {loading ? "Saving..." : "Save Order"}
-        </button>
       </form>
 
       <Modal
