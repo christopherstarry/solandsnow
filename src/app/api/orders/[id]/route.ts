@@ -34,6 +34,33 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await request.json();
+    const order = await prisma.order.update({
+      where: { id: params.id },
+      data: body,
+      include: { items: { include: { product: true } } },
+    });
+    return NextResponse.json(order);
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json(
+        { error: "Order not found" },
+        { status: 404 }
+      );
+    }
+    console.error("PATCH /api/orders/[id] error:", error);
+    return NextResponse.json(
+      { error: "Failed to update order" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: { id: string } }

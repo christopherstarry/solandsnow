@@ -21,6 +21,8 @@ export interface Order {
   customerName: string;
   total: number;
   date: string;
+  needsInvoice: boolean;
+  invoiceSent: boolean;
   createdAt: string;
   items: OrderItem[];
 }
@@ -38,4 +40,5 @@ export interface OrderInput {
   customerName: string;
   date: string;
   items: { productId: string; quantity: number }[];
+  needsInvoice?: boolean;
 }

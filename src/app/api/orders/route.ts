@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { customerName, date, items } = body;
+    const { customerName, date, items, needsInvoice } = body;
 
     if (!customerName || !date || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
         customerName: String(customerName),
         date: String(date),
         total,
+        needsInvoice: Boolean(needsInvoice),
         items: {
           create: orderItems,
         },

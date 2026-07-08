@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Order, OrdersResponse } from "@/lib/types";
-import { deleteOrder, fetchOrders } from "@/lib/api";
+import { deleteOrder, fetchOrders, sendInvoice } from "@/lib/api";
 import ProductImage from "./ProductImage";
 import { formatJakartaDateTime, formatRupiah, toJakartaDateString } from "@/lib/utils";
 
@@ -28,6 +28,10 @@ export default function OrderHistory({ refreshKey }: OrderHistoryProps) {
     if (!confirm("Delete this order?")) return;
     await deleteOrder(id);
     setExpandedId((current) => (current === id ? null : current));
+    setLocalRefresh((k) => k + 1);
+  }
+
+  function refreshOrders() {
     setLocalRefresh((k) => k + 1);
   }
 
@@ -76,6 +80,7 @@ export default function OrderHistory({ refreshKey }: OrderHistoryProps) {
               setExpandedId(expandedId === order.id ? null : order.id)
             }
             onDelete={handleDelete}
+            onInvoiceSent={refreshOrders}
           />
         ))}
       </div>
@@ -88,23 +93,57 @@ function OrderCard({
   expanded,
   onToggle,
   onDelete,
+  onInvoiceSent,
 }: {
   order: Order;
   expanded: boolean;
   onToggle: () => void;
   onDelete: (id: string) => void;
+  onInvoiceSent: () => void;
 }) {
+  const [invoiceEmail, setInvoiceEmail] = useState("");
+  const [sendingInvoice, setSendingInvoice] = useState(false);
+  const [invoiceError, setInvoiceError] = useState("");
+
+  async function handleSendInvoice() {
+    if (!invoiceEmail) return;
+    setSendingInvoice(true);
+    setInvoiceError("");
+    try {
+      await sendInvoice(order.id, invoiceEmail);
+      setInvoiceEmail("");
+      onInvoiceSent();
+    } catch {
+      setInvoiceError("Failed to send. Try again.");
+    } finally {
+      setSendingInvoice(false);
+    }
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-wood/10">
       <button
         onClick={onToggle}
         className="flex w-full items-center justify-between p-4 text-left"
       >
-        <div>
-          <p className="font-semibold text-ink">{order.customerName}</p>
-          <p className="text-xs text-charcoal/70">
-            {formatJakartaDateTime(order.createdAt)}
-          </p>
+        <div className="flex items-center gap-2">
+          <div>
+            <p className="font-semibold text-ink">{order.customerName}</p>
+            <p className="text-xs text-charcoal/70">
+              {formatJakartaDateTime(order.createdAt)}
+            </p>
+          </div>
+          {order.needsInvoice && (
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                order.invoiceSent
+                  ? "bg-sage/15 text-sage-dark"
+                  : "bg-sunshine text-wood-dark"
+              }`}
+            >
+              {order.invoiceSent ? "Sent" : "Invoice"}
+            </span>
+          )}
         </div>
         <div className="text-right">
           <p className="font-bold text-ink">{formatRupiah(order.total)}</p>
@@ -143,6 +182,32 @@ function OrderCard({
               {formatRupiah(order.total)}
             </p>
           </div>
+
+          {order.needsInvoice && !order.invoiceSent && (
+            <div className="mt-4 space-y-3 rounded-xl bg-white p-3 ring-1 ring-wood/10">
+              <p className="text-xs font-semibold text-charcoal/70">
+                Send Invoice
+              </p>
+              <input
+                type="email"
+                value={invoiceEmail}
+                onChange={(e) => setInvoiceEmail(e.target.value)}
+                placeholder="customer@example.com"
+                className="w-full rounded-lg border border-wood/20 bg-cream px-3 py-2 text-xs outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+              />
+              {invoiceError && (
+                <p className="text-xs font-medium text-rust">{invoiceError}</p>
+              )}
+              <button
+                onClick={handleSendInvoice}
+                disabled={sendingInvoice || !invoiceEmail}
+                className="w-full rounded-lg bg-sage py-2 text-xs font-bold text-white disabled:opacity-60"
+              >
+                {sendingInvoice ? "Sending..." : "Send Invoice"}
+              </button>
+            </div>
+          )}
+
           <button
             onClick={() => onDelete(order.id)}
             className="mt-3 w-full rounded-lg bg-cream py-2 text-xs font-semibold text-rust ring-1 ring-rust/20"

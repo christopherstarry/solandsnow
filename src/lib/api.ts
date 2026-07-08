@@ -77,6 +77,26 @@ export async function createOrder(data: OrderInput) {
   return res.json();
 }
 
+export async function updateOrder(id: string, data: Partial<OrderInput & { invoiceSent: boolean }>) {
+  const res = await fetch(`/api/orders/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update order");
+  return res.json();
+}
+
+export async function sendInvoice(orderId: string, email: string) {
+  const res = await fetch(`/api/orders/${orderId}/send-invoice`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw new Error("Failed to send invoice");
+  return res.json();
+}
+
 export async function deleteOrder(id: string) {
   const res = await fetch(`/api/orders/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete order");
