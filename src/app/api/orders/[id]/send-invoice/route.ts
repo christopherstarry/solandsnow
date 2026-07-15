@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import prisma from "@/lib/prisma";
 import { formatRupiah } from "@/lib/utils";
 
@@ -68,6 +68,16 @@ function invoiceHtml(order: {
 </html>`;
 }
 
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -99,22 +109,12 @@ export async function POST(
       );
     }
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
-    const { error } = await resend.emails.send({
-      from: "Sol & Snow <onboarding@resend.dev>",
-      to: [email],
+    await transporter.sendMail({
+      from: `"Sol & Snow" <${process.env.EMAIL_USER}>`,
+      to: email,
       subject: `Invoice #${order.id.slice(0, 8)} - Sol & Snow`,
       html: invoiceHtml(order),
     });
-
-    if (error) {
-      console.error("Resend send error:", error);
-      return NextResponse.json(
-        { error: "Failed to send email" },
-        { status: 500 }
-      );
-    }
 
     await prisma.order.update({
       where: { id: params.id },
