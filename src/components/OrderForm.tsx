@@ -20,11 +20,9 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [needsInvoice, setNeedsInvoice] = useState(false);
-  const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [invoiceEmail, setInvoiceEmail] = useState("");
-  const [sendingInvoice, setSendingInvoice] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [invoiceSent, setInvoiceSent] = useState(false);
-  const [invoiceError, setInvoiceError] = useState("");
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -57,6 +55,7 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
   function openModal() {
     if (!customerName || selectedItems.length === 0) return;
     setNeedsInvoice(false);
+    setInvoiceEmail("");
     setShowModal(true);
   }
 
@@ -70,33 +69,28 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
     setLoading(true);
     try {
       const order = await createOrder({ customerName, date, items, needsInvoice });
-      setCreatedOrder(order);
       setShowModal(false);
       setCustomerName("");
       setQuantities({});
       setDate(toJakartaDateString());
       setSearch("");
-      setInvoiceEmail("");
-      setInvoiceSent(false);
-      setInvoiceError("");
       onCreated();
+
+      if (needsInvoice && invoiceEmail) {
+        try {
+          await sendInvoice(order.id, invoiceEmail);
+          setCreatedOrder({ ...order, invoiceSent: true });
+          setInvoiceSent(true);
+        } catch {
+          setCreatedOrder(order);
+          setInvoiceSent(false);
+        }
+      } else {
+        setCreatedOrder(order);
+        setInvoiceSent(false);
+      }
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleSendInvoice() {
-    if (!createdOrder || !invoiceEmail) return;
-    setSendingInvoice(true);
-    setInvoiceError("");
-    try {
-      await sendInvoice(createdOrder.id, invoiceEmail);
-      setInvoiceSent(true);
-      setCreatedOrder((prev) => prev ? { ...prev, invoiceSent: true } : null);
-    } catch {
-      setInvoiceError("Failed to send invoice. Please try again.");
-    } finally {
-      setSendingInvoice(false);
     }
   }
 
@@ -104,7 +98,6 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
     setCreatedOrder(null);
     setInvoiceEmail("");
     setInvoiceSent(false);
-    setInvoiceError("");
   }
 
   return (
@@ -275,11 +268,24 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
             <input
               type="checkbox"
               checked={needsInvoice}
-              onChange={(e) => setNeedsInvoice(e.target.checked)}
+              onChange={(e) => {
+                setNeedsInvoice(e.target.checked);
+                if (!e.target.checked) setInvoiceEmail("");
+              }}
               className="h-5 w-5 rounded accent-sage"
             />
             <span className="text-sm font-medium text-ink">Need Invoice?</span>
           </label>
+
+          {needsInvoice && (
+            <input
+              type="email"
+              value={invoiceEmail}
+              onChange={(e) => setInvoiceEmail(e.target.value)}
+              placeholder="Customer email address"
+              className="w-full rounded-xl border border-wood/20 bg-cream px-3 py-2 text-sm outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+            />
+          )}
 
           <div className="flex gap-3">
             <button
@@ -301,66 +307,17 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
         </div>
       </Modal>
 
-      {createdOrder && needsInvoice && (
-        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-sage/30 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-ink">Order Created</h3>
-            <span className="text-xs font-medium text-sage-dark">
-              #{createdOrder.id.slice(0, 8)}
-            </span>
-          </div>
-
-          {invoiceSent ? (
-            <div className="rounded-xl bg-sage/10 p-4 text-center">
-              <p className="text-sm font-semibold text-sage-dark">
-                Invoice sent to {invoiceEmail}
-              </p>
-              <button
-                onClick={resetOrder}
-                className="mt-3 text-sm font-medium text-sage underline"
-              >
-                New Order
-              </button>
-            </div>
-          ) : (
-            <>
-              <p className="text-sm text-charcoal/70">
-                Enter the customer&apos;s email to send the invoice.
-              </p>
-              <input
-                type="email"
-                value={invoiceEmail}
-                onChange={(e) => setInvoiceEmail(e.target.value)}
-                placeholder="customer@example.com"
-                className="w-full rounded-xl border border-wood/20 bg-cream px-3 py-2 text-sm outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
-              />
-              {invoiceError && (
-                <p className="text-sm font-medium text-rust">{invoiceError}</p>
-              )}
-              <div className="flex gap-3">
-                <button
-                  onClick={resetOrder}
-                  className="flex-1 rounded-xl bg-cream py-2 text-sm font-semibold text-charcoal/70"
-                >
-                  Skip
-                </button>
-                <button
-                  onClick={handleSendInvoice}
-                  disabled={sendingInvoice || !invoiceEmail}
-                  className="flex-1 rounded-xl bg-sage py-2 text-sm font-bold text-white disabled:opacity-60"
-                >
-                  {sendingInvoice ? "Sending..." : "Send Invoice"}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {createdOrder && !needsInvoice && (
+      {createdOrder && (
         <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-wood/10 space-y-3">
-          <div className="rounded-xl bg-sage/10 p-3 text-center text-sm font-medium text-sage-dark">
-            Order saved!
+          <div className="rounded-xl bg-sage/10 p-3 text-center">
+            <p className="text-sm font-medium text-sage-dark">
+              {invoiceSent
+                ? `Order saved! Invoice sent to ${invoiceEmail}`
+                : "Order saved!"}
+            </p>
+            {needsInvoice && invoiceEmail && !invoiceSent && (
+              <p className="mt-1 text-xs text-rust">Invoice failed to send.</p>
+            )}
           </div>
           <button
             onClick={resetOrder}
