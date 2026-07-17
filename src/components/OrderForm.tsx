@@ -14,7 +14,7 @@ interface OrderFormProps {
 
 export default function OrderForm({ products, onCreated }: OrderFormProps) {
   const [customerName, setCustomerName] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
+  const [selectedCustomerEmail, setSelectedCustomerEmail] = useState("");
   const [suggestions, setSuggestions] = useState<Customer[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [date, setDate] = useState(toJakartaDateString());
@@ -74,7 +74,7 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
 
   function selectCustomer(customer: Customer) {
     setCustomerName(customer.name);
-    setCustomerEmail(customer.email ?? "");
+    setSelectedCustomerEmail(customer.email ?? "");
     setShowSuggestions(false);
   }
 
@@ -90,7 +90,7 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
   function openModal() {
     if (!customerName || selectedItems.length === 0) return;
     setNeedsInvoice(false);
-    setInvoiceEmail(customerEmail);
+    setInvoiceEmail(selectedCustomerEmail);
     setShowModal(true);
   }
 
@@ -108,11 +108,11 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
         date,
         items,
         needsInvoice,
-        customerEmail: customerEmail || undefined,
+        customerEmail: (needsInvoice && invoiceEmail) || undefined,
       });
       setShowModal(false);
       setCustomerName("");
-      setCustomerEmail("");
+      setSelectedCustomerEmail("");
       setSuggestions([]);
       setQuantities({});
       setDate(toJakartaDateString());
@@ -189,19 +189,6 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
                   ))}
                 </div>
               )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-charcoal/80">
-                Email{" "}
-                <span className="text-charcoal/40 font-normal">(optional)</span>
-              </label>
-              <input
-                type="email"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-wood/20 bg-cream px-3 py-2 text-sm outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
-                placeholder="customer@example.com"
-              />
             </div>
             <div>
               <label className="block text-sm font-medium text-charcoal/80">
