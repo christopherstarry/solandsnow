@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Product, Order } from "@/lib/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Customer, Product, Order } from "@/lib/types";
 import { formatRupiah, toJakartaDateString } from "@/lib/utils";
-import { createOrder, sendInvoice } from "@/lib/api";
+import { createOrder, fetchCustomers, sendInvoice } from "@/lib/api";
 import ProductImage from "./ProductImage";
 import Modal from "./Modal";
 
@@ -14,6 +14,9 @@ interface OrderFormProps {
 
 export default function OrderForm({ products, onCreated }: OrderFormProps) {
   const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [suggestions, setSuggestions] = useState<Customer[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [date, setDate] = useState(toJakartaDateString());
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [search, setSearch] = useState("");
@@ -23,6 +26,8 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
   const [invoiceEmail, setInvoiceEmail] = useState("");
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [invoiceSent, setInvoiceSent] = useState(false);
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -43,6 +48,36 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
     return selectedItems.reduce((sum, { product, qty }) => sum + product.price * qty, 0);
   }, [selectedItems]);
 
+  useEffect(() => {
+    const name = customerName.trim();
+    if (!name || name.length < 1) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await fetchCustomers(name);
+        setSuggestions(data);
+        setShowSuggestions(data.length > 0);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 200);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [customerName]);
+
+  function selectCustomer(customer: Customer) {
+    setCustomerName(customer.name);
+    setCustomerEmail(customer.email ?? "");
+    setShowSuggestions(false);
+  }
+
   function setQuantity(productId: string, value: number) {
     setQuantities((prev) => {
       const next = { ...prev };
@@ -55,7 +90,7 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
   function openModal() {
     if (!customerName || selectedItems.length === 0) return;
     setNeedsInvoice(false);
-    setInvoiceEmail("");
+    setInvoiceEmail(customerEmail);
     setShowModal(true);
   }
 
@@ -68,9 +103,17 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
 
     setLoading(true);
     try {
-      const order = await createOrder({ customerName, date, items, needsInvoice });
+      const order = await createOrder({
+        customerName,
+        date,
+        items,
+        needsInvoice,
+        customerEmail: customerEmail || undefined,
+      });
       setShowModal(false);
       setCustomerName("");
+      setCustomerEmail("");
+      setSuggestions([]);
       setQuantities({});
       setDate(toJakartaDateString());
       setSearch("");
@@ -108,7 +151,7 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
       >
         <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-wood/10">
           <div className="space-y-3">
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-charcoal/80">
                 Customer Name
               </label>
@@ -116,9 +159,48 @@ export default function OrderForm({ products, onCreated }: OrderFormProps) {
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true);
+                }}
+                onBlur={() => {
+                  setTimeout(() => setShowSuggestions(false), 150);
+                }}
                 className="mt-1 w-full rounded-xl border border-wood/20 bg-cream px-3 py-2 text-sm outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
-                placeholder="Customer A"
+                placeholder="Customer name"
+                autoComplete="off"
                 required
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-wood/10 bg-white shadow-lg">
+                  {suggestions.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onMouseDown={() => selectCustomer(c)}
+                      className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-cream"
+                    >
+                      <span className="font-medium text-ink">{c.name}</span>
+                      {c.email && (
+                        <span className="text-xs text-charcoal/50 truncate ml-2 max-w-[140px]">
+                          {c.email}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-charcoal/80">
+                Email{" "}
+                <span className="text-charcoal/40 font-normal">(optional)</span>
+              </label>
+              <input
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-wood/20 bg-cream px-3 py-2 text-sm outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+                placeholder="customer@example.com"
               />
             </div>
             <div>

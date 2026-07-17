@@ -19,14 +19,23 @@ model Product {
 }
 
 model Order {
-  id            String   @id @default(cuid())
+  id            String     @id @default(cuid())
   customerName  String
+  customerId    String?
+  customer      Customer?  @relation(fields: [customerId], references: [id])
   total         Int
   date          String
-  needsInvoice  Boolean  @default(false)
-  invoiceSent   Boolean  @default(false)
-  createdAt     DateTime @default(now())
+  needsInvoice  Boolean    @default(false)
+  invoiceSent   Boolean    @default(false)
+  createdAt     DateTime   @default(now())
   items         OrderItem[]
+}
+
+model Customer {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  email  String?
+  orders Order[]
 }
 
 model OrderItem {

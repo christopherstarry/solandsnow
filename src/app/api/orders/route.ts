@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { customerName, date, items, needsInvoice } = body;
+    const { customerName, date, items, needsInvoice, customerEmail } = body;
 
     if (!customerName || !date || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -90,21 +90,44 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const order = await prisma.order.create({
-      data: {
-        customerName: String(customerName),
-        date: String(date),
-        total,
-        needsInvoice: Boolean(needsInvoice),
-        items: {
-          create: orderItems,
+    const order = await prisma.$transaction(async (tx) => {
+      let customerId: string | null = null;
+
+      if (customerEmail || (customerName && customerEmail !== undefined)) {
+        const customer = await tx.customer.upsert({
+          where: { name: String(customerName) },
+          update: { email: customerEmail || null },
+          create: { name: String(customerName), email: customerEmail || null },
+        });
+        customerId = customer.id;
+      } else if (customerName) {
+        const existing = await tx.customer.findUnique({
+          where: { name: String(customerName) },
+        });
+        if (existing) {
+          customerId = existing.id;
+        } else {
+          const customer = await tx.customer.create({
+            data: { name: String(customerName) },
+          });
+          customerId = customer.id;
+        }
+      }
+
+      return tx.order.create({
+        data: {
+          customerName: String(customerName),
+          date: String(date),
+          total,
+          needsInvoice: Boolean(needsInvoice),
+          customerId,
+          items: { create: orderItems },
         },
-      },
-      include: {
-        items: {
-          include: { product: true },
+        include: {
+          items: { include: { product: true } },
+          customer: true,
         },
-      },
+      });
     });
 
     return NextResponse.json(order, { status: 201 });

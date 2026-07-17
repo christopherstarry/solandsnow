@@ -60,6 +60,15 @@ export async function deleteProduct(id: string) {
   return res.json();
 }
 
+export async function fetchCustomers(search?: string) {
+  const url = search
+    ? `/api/customers?search=${encodeURIComponent(search)}`
+    : "/api/customers";
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch customers");
+  return res.json();
+}
+
 export async function fetchOrders(date?: string) {
   const url = date ? `/api/orders?date=${date}` : "/api/orders";
   const res = await fetch(url);

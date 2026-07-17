@@ -16,9 +16,16 @@ export interface OrderItem {
   product: Product;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  email: string | null;
+}
+
 export interface Order {
   id: string;
   customerName: string;
+  customerId: string | null;
   total: number;
   date: string;
   needsInvoice: boolean;
@@ -41,4 +48,5 @@ export interface OrderInput {
   date: string;
   items: { productId: string; quantity: number }[];
   needsInvoice?: boolean;
+  customerEmail?: string;
 }
