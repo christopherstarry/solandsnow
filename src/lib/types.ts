@@ -50,3 +50,8 @@ export interface OrderInput {
   needsInvoice?: boolean;
   customerEmail?: string;
 }
+
+export interface ExportResponse {
+  rows: Record<string, string | number>[];
+  summary: Record<string, string | number>[];
+}

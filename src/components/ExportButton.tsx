@@ -2,25 +2,30 @@
 
 import { useState } from "react";
 import { exportOrders } from "@/lib/api";
-import { toJakartaDateString } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
 interface ExportButtonProps {
-  date?: string;
+  from: string;
+  to: string;
   label?: string;
 }
 
-export default function ExportButton({ date, label = "Export Excel" }: ExportButtonProps) {
+export default function ExportButton({ from, to, label = "Export Excel" }: ExportButtonProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleExport() {
     setLoading(true);
     try {
-      const { rows } = await exportOrders(date);
-      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const { rows, summary } = await exportOrders(from, to);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
-      const fileName = `solandsnow-orders-${date ?? toJakartaDateString()}.xlsx`;
+
+      const ordersSheet = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(workbook, ordersSheet, "All Orders");
+
+      const summarySheet = XLSX.utils.json_to_sheet(summary);
+      XLSX.utils.book_append_sheet(workbook, summarySheet, "Sales Summary");
+
+      const fileName = `solandsnow-orders-${from}_to_${to}.xlsx`;
       XLSX.writeFile(workbook, fileName);
     } finally {
       setLoading(false);

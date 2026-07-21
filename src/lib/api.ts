@@ -112,8 +112,8 @@ export async function deleteOrder(id: string) {
   return res.json();
 }
 
-export async function exportOrders(date?: string) {
-  const url = date ? `/api/export?date=${date}` : "/api/export";
+export async function exportOrders(from: string, to: string) {
+  const url = `/api/export?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to export orders");
   return res.json();

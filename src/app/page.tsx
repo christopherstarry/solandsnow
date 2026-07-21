@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchProducts } from "@/lib/api";
 import { Product } from "@/lib/types";
+import { toJakartaDateString } from "@/lib/utils";
 import Dashboard from "@/components/Dashboard";
 import ProductManager from "@/components/ProductManager";
 import OrderForm from "@/components/OrderForm";
@@ -16,6 +17,8 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [exportFrom, setExportFrom] = useState(toJakartaDateString());
+  const [exportTo, setExportTo] = useState(toJakartaDateString());
 
   async function loadProducts() {
     setLoading(true);
@@ -68,8 +71,41 @@ export default function Home() {
           {activeTab === "history" && (
             <>
               <OrderHistory refreshKey={refreshKey} />
-              <div className="mt-6">
-                <ExportButton label="Export This Day to Excel" />
+              <div className="mt-6 space-y-4">
+                <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-wood/10">
+                  <label className="block text-sm font-medium text-charcoal/80">
+                    Export Date Range (Jakarta)
+                  </label>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-charcoal/60">
+                        From
+                      </label>
+                      <input
+                        type="date"
+                        value={exportFrom}
+                        onChange={(e) => setExportFrom(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-wood/20 bg-cream px-3 py-2 text-sm outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-charcoal/60">
+                        To
+                      </label>
+                      <input
+                        type="date"
+                        value={exportTo}
+                        onChange={(e) => setExportTo(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-wood/20 bg-cream px-3 py-2 text-sm outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <ExportButton
+                  from={exportFrom}
+                  to={exportTo}
+                  label="Export to Excel"
+                />
               </div>
             </>
           )}
